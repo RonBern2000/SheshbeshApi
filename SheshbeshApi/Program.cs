@@ -1,6 +1,13 @@
+using SheshbeshApi.DAL;
+using SheshbeshApi.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.Configure<UsersDatabaseSettings>(
+    builder.Configuration.GetSection("ConnectionStrings"));
+
+builder.Services.AddSingleton<UsersService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
