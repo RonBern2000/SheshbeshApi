@@ -20,8 +20,18 @@ namespace SheshbeshApi.DAL
                 usersDatabaseSettings.Value.UsersCollectionName);
         }
 
-        public async Task<List<User>> GetAsync() =>
-            await _usersCollection.Find(_ => true).ToListAsync();
+        public async Task<List<ResponseUser>> GetAsync()
+        {
+            var users = await _usersCollection.Find(_ => true).ToListAsync();
+
+            var responseUsers = users.Select(user => new ResponseUser
+            {
+                Id = user.Id,
+                Username = user.UserName,
+                Email = user.Email
+            }).ToList();
+            return responseUsers;
+        }
 
         public async Task<User?> GetAsync(string id) =>
             await _usersCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
@@ -34,5 +44,11 @@ namespace SheshbeshApi.DAL
 
         public async Task RemoveAsync(string id) =>
             await _usersCollection.DeleteOneAsync(x => x.Id == id);
+
+        public async Task<User?> GetUserByUsernameAsync(string username) =>
+            await _usersCollection.Find(x => x.UserName == username).FirstOrDefaultAsync();
+
+        public async Task<User?> GetUserByEmailAsync(string email) =>
+            await _usersCollection.Find(x => x.Email == email).FirstOrDefaultAsync();
     }
 }
