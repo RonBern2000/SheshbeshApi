@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SheshbeshApi.DAL;
+using SheshbeshApi.Filters;
 using SheshbeshApi.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -9,14 +10,16 @@ using System.Text;
 
 namespace SheshbeshApi.Controllers
 {
+    [ServiceFilter(typeof(ActionsFilter))]
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly UsersService _usersService;
+        private readonly IUserRepository _usersService;
         private readonly JwtSettings _jwtSettings;
-        public UserController(UsersService usersService, IOptions<JwtSettings> jwtSettings)
+        public UserController(IUserRepository usersService, IOptions<JwtSettings> jwtSettings)
         {
+            _usersService = usersService;
             _usersService = usersService;
             _jwtSettings = jwtSettings.Value;
         }
@@ -40,6 +43,17 @@ namespace SheshbeshApi.Controllers
 
             return Ok(resUser);
         }
+        [HttpPost("authStatus")]
+        public IActionResult CheckAuthStatus()
+        {
+
+            var authToken = Request.Cookies["authToken"];
+
+            var isAuth = string.IsNullOrEmpty(authToken) ? false : true;
+
+            return Ok(isAuth);
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDTO userDTO)
         {
@@ -63,7 +77,16 @@ namespace SheshbeshApi.Controllers
                 Expires = DateTime.UtcNow.AddHours(1)
             });
 
-            return Ok();
+            var resUser = new ResponseUser { Id = user.Id, Username = user.UserName, Email = user.Email };
+
+            return Ok(resUser);
+        }
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            //TODO: Aync functionalities like logging at the future. right now we dont need Async
+            Response.Cookies.Delete("authToken");
+            return Ok(new { message = "Logged out successfully" });
         }
 
         [HttpPost("signup")]
@@ -94,7 +117,7 @@ namespace SheshbeshApi.Controllers
             Response.Cookies.Append("authToken", token, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = false, // Use true in Https/production
+                Secure = false, // Use true for Https/Production
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddHours(1)
             });

@@ -4,11 +4,11 @@ using SheshbeshApi.Models;
 
 namespace SheshbeshApi.DAL
 {
-    public class UsersService
+    public class UserRepository: IUserRepository
     {
         private readonly IMongoCollection<User> _usersCollection;
 
-        public UsersService(IOptions<UsersDatabaseSettings> usersDatabaseSettings)
+        public UserRepository(IOptions<UsersDatabaseSettings> usersDatabaseSettings)
         {
             var mongoClient = new MongoClient(
                 usersDatabaseSettings.Value.ConnectionString);
