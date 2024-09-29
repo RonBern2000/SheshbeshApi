@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SheshbeshApi.DAL;
@@ -24,7 +25,7 @@ namespace SheshbeshApi.Controllers
             _jwtSettings = jwtSettings.Value;
         }
 
-        [HttpGet]
+        [HttpGet("allUsers")]
         public async Task<ActionResult<List<ResponseUser>>> GetAllUsers()
         {
             var responseUsers = await _usersService.GetAsync();
@@ -43,15 +44,17 @@ namespace SheshbeshApi.Controllers
 
             return Ok(resUser);
         }
+        //TODO: consider remnoval
         [HttpPost("authStatus")]
+        [Authorize]
         public IActionResult CheckAuthStatus()
         {
+            if (User!.Identity!.IsAuthenticated) 
+            {
+                return Ok(true);
+            }
 
-            var authToken = Request.Cookies["authToken"];
-
-            var isAuth = string.IsNullOrEmpty(authToken) ? false : true;
-
-            return Ok(isAuth);
+            return Ok(false);
         }
 
         [HttpPost("login")]
