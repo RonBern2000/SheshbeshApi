@@ -27,6 +27,7 @@ namespace SheshbeshApi.Hubs
             var groupPlayers = userGroups.Values.Count(g => g == groupName);
             if (groupPlayers == 2)
             {
+                _gameService.CreateNewGame(groupName);
                 await Clients.Group(groupName).SendAsync("StartGame");
             }
         }
@@ -41,14 +42,15 @@ namespace SheshbeshApi.Hubs
             var gameState = _gameService.GetGameState(groupName);
             if (die1 == die2)
             {
-                gameState!.AmountOfMoves = 4;
+                for (int i = 0; i < gameState!.DiceRolls.Length; i++)
+                    gameState!.DiceRolls[i] = die1;
+                gameState!.IsDouble = true;
             }
             else
             {
-                gameState!.AmountOfMoves = 2;
+                gameState!.DiceRolls[0] = die1;
+                gameState!.DiceRolls[1] = die2;
             }
-
-            // TODO: _gameService.Calc more complex calc of the amount that the user can move
 
             await Clients.Group(groupName).SendAsync("DiceRolled", die1, die2);
         }
@@ -57,7 +59,7 @@ namespace SheshbeshApi.Hubs
         {
             string groupName = userGroups[Context.ConnectionId];
 
-            var gameState = _gameService.ProcessPosibbleMoves(groupName, fromPosition, die1, die2);
+            var gameState = _gameService.ProcessPosibbleMoves(groupName, fromPosition);
 
             await Clients.Group(groupName).SendAsync("ReceivePossbleMoves", fromPosition, gameState.PossibleMoves);
         }

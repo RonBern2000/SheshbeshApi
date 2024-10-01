@@ -8,7 +8,8 @@
         public string? PlayerBlackId { get; set; }
         public string? PlayerWhiteId { get; set; }
         public int[] PossibleMoves { get; set; }
-        public int AmountOfMoves { get; set; }
+        public int[] DiceRolls { get; set; }
+        public bool IsDouble { get; set; }
 
         public GameState()
         {
@@ -31,91 +32,23 @@
             Board[19] = "w5";  // 5 white checkers on point 19
 
             IsPlayerBlackTurn = true;
-            PossibleMoves = new int[2];
+            PossibleMoves = new int[2]; // the index might be filld or not
+            DiceRolls = new int[4]; // 0,1 for not equal and 0,1,2,3 for qual dices
         }
-        public int GetPotentialMovesAfterDiceRoll(int die1, int die2) // when die1 == die2 => checks if there are indeed 4 avialable moves at least, when die1 != die2 => checks if there are indeed 2 available moves at least
+        public GameState GetPossibleMoves(int fromPosition)
         {
-            // 
-            int potentialMoves = 0;
-            int movesToCheck = (die1 == die2) ? 4 : 2;
-
-            int direction = IsPlayerBlackTurn ? -1 : 1;
-
-            for (int fromPosition = 0; fromPosition < Board.Length; fromPosition++)
+            for (int i = 0; i < PossibleMoves.Length; i++)
             {
-                var pawn = Board[fromPosition];
-
-                if (pawn != null && pawn[0] == (IsPlayerBlackTurn ? 'b' : 'w'))
-                {
-                    int toPositionDie1 = fromPosition + (die1 * direction);
-                    if (IsMoveValid(toPositionDie1, pawn))
-                    {
-                        potentialMoves++;
-
-                        int toPositionDie2 = toPositionDie1 + (die2 * direction);
-                        if (IsMoveValid(toPositionDie2, pawn))
-                        {
-                            potentialMoves++;
-                        }
-                        if (potentialMoves >= movesToCheck)
-                        {
-                            return potentialMoves;
-                        }
-                    }
-
-                    int toPositionDie2First = fromPosition + (die2 * direction);
-                    if (IsMoveValid(toPositionDie2First, pawn))
-                    {
-                        potentialMoves++;
-
-                        int toPositionDie1Second = toPositionDie2First + (die1 * direction);
-                        if (IsMoveValid(toPositionDie1Second, pawn))
-                        {
-                            potentialMoves++;
-                        }
-                        if (potentialMoves >= movesToCheck)
-                        {
-                            return potentialMoves;
-                        }
-                    }
-                }
-            }
-            return potentialMoves;
-        }
-        private bool IsMoveValid(int toPosition, string pawn)
-        {
-            if (toPosition < 0 || toPosition > 25)
-            {
-                return true;
-            }
-
-            if (toPosition < Board.Length)
-            {
-                var targetPawn = Board[toPosition];
-
-                return targetPawn == null || targetPawn[0] == pawn[0] || targetPawn[1] == '1';
-            }
-
-            return false; // Invalid move => blocked by opponent
-        }
-        public GameState GetPossibleMoves(int fromPosition, int die1, int die2)
-        {
-            int[] dice = { die1, die2 };
-            bool isDouble = die1 == die2;
-
-            for (int i = 0; i < dice.Length; i++)
-            {
-                if (isDouble && i == 1) break; // Skip duplicate die check for double rolls
-
-                int move = IsPlayerBlackTurn ? fromPosition - dice[i] : fromPosition + dice[i];
+                if(IsDouble && i == 1)
+                    break;
+                int move = IsPlayerBlackTurn ? fromPosition - DiceRolls[i] : fromPosition + DiceRolls[i];
                 var toPosition = Board[move];
 
                 if (IsValidMove(toPosition))
                 {
-                    PossibleMoves[i] = move; // Assign to PossibleMoves
+                    PossibleMoves[i] = move; // Assign a valid index to PossibleMoves that the player can move the selected pawn to
                 }
             }
-
             return this;
         }
         private bool IsValidMove(string toPosition)
@@ -133,9 +66,9 @@
                 return toPosition[0] == 'w' || toPosition[1] == '1';
             }
         }
-        public GameState MakeMove(int fromPosition, int toPosition)
+        public GameState MakeMove(int fromPosition, int toPosition) // represting the indexes from and to
         {
-            // Board[26] = "w0b0" is Jail
+            // Jail = "w0b0" structure
             char playerSymbol = IsPlayerBlackTurn ? 'b' : 'w';
             char opponentSymbol = IsPlayerBlackTurn ? 'w' : 'b';
 
@@ -155,10 +88,18 @@
                 MoveToJail(opponentSymbol);
             }
 
-            AmountOfMoves--;
-            if (AmountOfMoves == 0)
+            for(int i = 0; i < DiceRolls.Length; i++)
             {
-                IsPlayerBlackTurn = !IsPlayerBlackTurn;
+                if(DiceRolls[i] != 0)
+                {
+                    DiceRolls[i] = 0;
+                    break;
+                }
+                if(!IsDouble && i == 2)
+                {
+                    IsPlayerBlackTurn = !IsPlayerBlackTurn;
+                    break;
+                }
             }
             return this;
         }

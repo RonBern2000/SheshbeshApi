@@ -6,7 +6,7 @@ namespace SheshbeshApi.Services
     {
         public GameState CreateNewGame(string groupName);
         public GameState? GetGameState(string groupName);
-        public GameState ProcessPosibbleMoves(string groupName, int fromPosition, int die1, int die2);
+        public GameState ProcessPosibbleMoves(string groupName, int fromPosition);
         public GameState MakeMove(string groupName, int fromPosition, int toPosition);
     }
 }

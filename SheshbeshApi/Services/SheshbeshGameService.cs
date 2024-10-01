@@ -17,19 +17,11 @@ namespace SheshbeshApi.Services
         {
             return activeGames.ContainsKey(groupName) ? activeGames[groupName] : null;
         }
-        public GameState GetAllPotentialMoves(string groupName, int die1, int die2) 
+        public GameState ProcessPosibbleMoves(string groupName, int fromPosition)
         {
             var gameState = activeGames[groupName];
 
-            gameState.GetPotentialMovesAfterDiceRoll(die1, die2);
-
-            return gameState;
-        }
-        public GameState ProcessPosibbleMoves(string groupName, int fromPosition, int die1, int die2)
-        {
-            var gameState = activeGames[groupName];
-
-            gameState.GetPossibleMoves(fromPosition, die1, die2);
+            gameState.GetPossibleMoves(fromPosition);
 
             return gameState;
         }
