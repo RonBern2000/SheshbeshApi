@@ -6,7 +6,6 @@ using SheshbeshApi.DAL;
 using SheshbeshApi.Filters;
 using SheshbeshApi.Hubs;
 using SheshbeshApi.Models;
-using SheshbeshApi.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,13 +24,17 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.Configure<UsersDatabaseSettings>(
-    builder.Configuration.GetSection("ConnectionStrings"));
+    builder.Configuration.GetSection("UsersDatabaseSettings"));
+
+builder.Services.Configure<MessagesDatabaseSettings>(
+    builder.Configuration.GetSection("MessagesDatabaseSettings"));
 
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddSingleton<IUserRepository, UserRepository>();
-builder.Services.AddSingleton<UserRepository>();
+
+builder.Services.AddSingleton<IMessageRepository, MessageRepository>();
 
 builder.Services.AddControllers();
 
@@ -76,8 +79,6 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddSignalR();
 
-builder.Services.AddSingleton<IDictionary<string, UserRoomConnection>>(opt => new Dictionary<string, UserRoomConnection>());
-
 builder.Host.UseSerilog((ctx, lc) =>
         lc.ReadFrom.Configuration(ctx.Configuration)); // adding logs
 builder.Services.AddScoped<ActionsFilter>();
@@ -103,6 +104,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHub<ChatHub>("/chatHub");
+
+app.MapHub<SheshbeshHub>("/sheshbeshHub");
 
 app.MapControllers();
 

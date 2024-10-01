@@ -1,17 +1,18 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using SheshbeshApi.DAL;
 using SheshbeshApi.Models;
 
 namespace SheshbeshApi.Hubs
 {
+    [Authorize]
     public class ChatHub : Hub
     {
-        private readonly IDictionary<string, UserRoomConnection> _connection;
-
-        public ChatHub(IDictionary<string, UserRoomConnection> connection)
+        private readonly IMessageRepository _messageRepository;
+        public ChatHub(IMessageRepository messageRepository)
         {
-            _connection = connection;
+            _messageRepository = messageRepository;
         }
-
         public async Task SendMessage(string username, string msg)
         {
             await Clients.All.SendAsync("ReceiveMessage", username, msg);
@@ -24,10 +25,28 @@ namespace SheshbeshApi.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
+        public async Task LeaveRoom(string username1, string username2)
+        {
+            var groupName = SortUsernames([username1, username2]);
+
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+            await Clients.Group(groupName).SendAsync("UserLeft", username1); // Notify other users
+        }
+
         public async Task SendGroupMessage(string username1, string username2, string message)
         {
             var groupName = SortUsernames([username1, username2]);
-            await Clients.Group($"{groupName}").SendAsync("ReceiveGroupMessage", username1,message);
+            await Clients.Group($"{groupName}").SendAsync("ReceiveGroupMessage", username1, message);
+
+            var newMessage = new Message
+            {
+                SenderUsername = username1,
+                RecipientUsername = username2,
+                MessageContent = message,
+                Timestamp = DateTime.UtcNow
+            };
+
+            await _messageRepository.CreateAsync(newMessage);
         }
 
         private string SortUsernames(string[] usernames)

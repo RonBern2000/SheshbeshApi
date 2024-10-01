@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
+using SheshbeshApi.DAL;
 using SheshbeshApi.Filters;
-using SheshbeshApi.Hubs;
-using SheshbeshApi.Services;
+using SheshbeshApi.Models;
 
 namespace SheshbeshApi.Controllers
 {
@@ -13,34 +12,23 @@ namespace SheshbeshApi.Controllers
     [Authorize]
     public class ChatController : Controller
     {
-        private readonly IChatService _chatService;
-        public ChatController(IChatService chatService)
+        private readonly IMessageRepository _messageRepository;
+        public ChatController(IMessageRepository messageRepository)
         {
-            _chatService = chatService;
+            _messageRepository = messageRepository;
         }
-        [HttpPost("send")]
-        public async Task<IActionResult> SendMessage([FromBody] string msg)
+        [HttpGet("between")]
+        public async Task<IActionResult> GetMessagesBetween(string senderUsername, string recipientUsername)
         {
-            if (string.IsNullOrWhiteSpace(msg))
-            {
-                return BadRequest("Message cannot be empty.");
-            }
-
-            await _chatService.SendMessage(msg);
-
-            return Ok(new { Message = "Message sent successfully!" });
+            var messages = await _messageRepository.GetMessagesAsync(senderUsername, recipientUsername);
+            return Ok(messages);
         }
-        [HttpPost("sendDm")]
-        public async Task<IActionResult> SendDmMessage([FromBody] string msg, string id)
+
+        [HttpPost]
+        public async Task<IActionResult> CreateMessage([FromBody] Message newMessage)
         {
-            if (string.IsNullOrWhiteSpace(msg))
-            {
-                return BadRequest("Message cannot be empty.");
-            }
-
-            await _chatService.SendDmMessage(msg , id);
-
-            return Ok(new { Message = msg });
+            await _messageRepository.CreateAsync(newMessage);
+            return CreatedAtAction(nameof(GetMessagesBetween), new { senderUsername = newMessage.SenderUsername, recipientUsername = newMessage.RecipientUsername }, newMessage);
         }
     }
 }

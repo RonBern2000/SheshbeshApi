@@ -10,14 +10,11 @@ namespace SheshbeshApi.DAL
 
         public UserRepository(IOptions<UsersDatabaseSettings> usersDatabaseSettings)
         {
-            var mongoClient = new MongoClient(
-                usersDatabaseSettings.Value.ConnectionString);
+            var mongoClient = new MongoClient(usersDatabaseSettings.Value.ConnectionString);
 
-            var mongoDatabase = mongoClient.GetDatabase(
-                usersDatabaseSettings.Value.DatabaseName);
+            var mongoDatabase = mongoClient.GetDatabase(usersDatabaseSettings.Value.DatabaseName);
 
-            _usersCollection = mongoDatabase.GetCollection<User>(
-                usersDatabaseSettings.Value.UsersCollectionName);
+            _usersCollection = mongoDatabase.GetCollection<User>(usersDatabaseSettings.Value.UsersCollectionName);
         }
 
         public async Task<List<ResponseUser>> GetAsync()
