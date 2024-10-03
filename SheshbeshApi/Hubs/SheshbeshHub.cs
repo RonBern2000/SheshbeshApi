@@ -15,7 +15,6 @@ namespace SheshbeshApi.Hubs
         {
             _gameService = gameService;
         }
-
         public async Task JoinGame(string groupName)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
@@ -28,7 +27,16 @@ namespace SheshbeshApi.Hubs
             if (groupPlayers == 2)
             {
                 _gameService.CreateNewGame(groupName);
-                await Clients.Group(groupName).SendAsync("StartGame");
+                var gameState = _gameService.GetGameState(groupName);
+
+                var playersInGroup = userGroups.Where(u => u.Value == groupName).Select(u => u.Key).ToList();
+                if (playersInGroup.Count == 2)
+                {
+                    gameState!.PlayerBlackId = playersInGroup[0]; // First player to join
+                    gameState.PlayerWhiteId = playersInGroup[1]; // Second player to join
+                }
+
+                await Clients.Group(groupName).SendAsync("StartGame", gameState);
             }
         }
 
@@ -40,6 +48,7 @@ namespace SheshbeshApi.Hubs
 
             string groupName = userGroups[Context.ConnectionId];
             var gameState = _gameService.GetGameState(groupName);
+
             if (die1 == die2)
             {
                 for (int i = 0; i < gameState!.DiceRolls.Length; i++)
@@ -53,6 +62,14 @@ namespace SheshbeshApi.Hubs
             }
 
             await Clients.Group(groupName).SendAsync("DiceRolled", die1, die2);
+        }
+        public async Task SkipTurn()
+        {
+            string groupName = userGroups[Context.ConnectionId];
+            bool skipTurn = _gameService.SkipTurn(groupName);
+            bool isPlayerBlackTurn = _gameService.GetGameState(groupName)!.IsPlayerBlackTurn;
+
+            await Clients.Group(groupName).SendAsync("SkipTurn", skipTurn, isPlayerBlackTurn);
         }
 
         public async Task GetPossibleMoves(int fromPosition, int die1, int die2)

@@ -13,9 +13,9 @@
 
         public GameState()
         {
+            Jail = "w0b0";
             Board = new string[26];
             // Empty indexes are null
-            Jail = "w0b0";
             Board[0] = "b0";   // Black's bear-off area, initially empty
             Board[25] = "w0";  // White's bear-off area, initially empty
 
@@ -35,11 +35,57 @@
             PossibleMoves = new int[2]; // the index might be filld or not
             DiceRolls = new int[4]; // 0,1 for not equal and 0,1,2,3 for qual dices
         }
+        public int GetPotentialMovesAfterEachMove() // if this method returns 0 then we can skip to the next player
+        {
+            int potentialMoves = 0;
+            int direction = IsPlayerBlackTurn ? -1 : 1;
+
+            for (int fromPosition = 0; fromPosition < Board.Length; fromPosition++)
+            {
+                var pawn = Board[fromPosition];
+                if (pawn != null && pawn[0] == (IsPlayerBlackTurn ? 'b' : 'w'))
+                {
+                    foreach (int die in DiceRolls.Where(d => d != 0))
+                    {
+                        int toPosition = fromPosition + (die * direction);
+
+                        if (toPosition >= 0 && toPosition <= 25)
+                        {
+                            var targetPawn = Board[toPosition];
+
+                            if (targetPawn == null || targetPawn[0] == pawn[0] || targetPawn[1] == '1')
+                            {
+                                potentialMoves++;
+                            }
+                        }
+                        else
+                        {
+                            potentialMoves++;
+                        }
+
+                        if (potentialMoves == 1)
+                        {
+                            return potentialMoves;
+                        }
+                    }
+                }
+            }
+            return potentialMoves;
+        }
+        public bool IsDiceRollsEmpty() // check if the player utilized all of his moves, so we dont need to check "GetPotentialMovesAfterEachMove" And we could skip the turn to the other player
+        {
+            bool flag = false;
+            foreach (var die in DiceRolls)
+            {
+                flag = die != 0 ? false : true;
+            }
+            return flag;
+        }
         public GameState GetPossibleMoves(int fromPosition)
         {
             for (int i = 0; i < PossibleMoves.Length; i++)
             {
-                if(IsDouble && i == 1)
+                if (IsDouble && i == 1)
                     break;
                 int move = IsPlayerBlackTurn ? fromPosition - DiceRolls[i] : fromPosition + DiceRolls[i];
                 var toPosition = Board[move];
@@ -88,16 +134,15 @@
                 MoveToJail(opponentSymbol);
             }
 
-            for(int i = 0; i < DiceRolls.Length; i++)
+            for (int i = 0; i < DiceRolls.Length; i++)
             {
-                if(DiceRolls[i] != 0)
+                if (Math.Abs(fromPosition - toPosition) == DiceRolls[i] && DiceRolls[i] != 0)
                 {
                     DiceRolls[i] = 0;
                     break;
                 }
-                if(!IsDouble && i == 2)
+                if (!IsDouble && i == 2)
                 {
-                    IsPlayerBlackTurn = !IsPlayerBlackTurn;
                     break;
                 }
             }

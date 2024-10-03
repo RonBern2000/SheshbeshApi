@@ -2,7 +2,7 @@
 
 namespace SheshbeshApi.Services
 {
-    public class SheshbeshGameService: ISheshbeshGameService
+    public class SheshbeshGameService : ISheshbeshGameService
     {
         private Dictionary<string, GameState> activeGames = new Dictionary<string, GameState>();
 
@@ -16,6 +16,34 @@ namespace SheshbeshApi.Services
         public GameState? GetGameState(string groupName)
         {
             return activeGames.ContainsKey(groupName) ? activeGames[groupName] : null;
+        }
+        public bool SkipTurn(string groupName)
+        {
+            var gameState = activeGames[groupName];
+            if (IsDicRollsEmpty(groupName))
+            {
+                gameState.IsPlayerBlackTurn = !gameState.IsPlayerBlackTurn;
+                return true;
+            }
+            if (!IsTherePotentialMovesAfterEachMove(groupName))
+            {
+                gameState.IsPlayerBlackTurn = !gameState.IsPlayerBlackTurn;
+                return true;
+            }
+            return false;
+        }
+        private bool IsDicRollsEmpty(string groupName)
+        {
+            var gameState = activeGames[groupName];
+            return gameState.IsDiceRollsEmpty();
+        }
+        private bool IsTherePotentialMovesAfterEachMove(string groupName)
+        {
+            var gameState = activeGames[groupName];
+
+            bool isThereAMove = gameState.GetPotentialMovesAfterEachMove() == 1 ? true : false;
+
+            return isThereAMove;
         }
         public GameState ProcessPosibbleMoves(string groupName, int fromPosition)
         {

@@ -6,6 +6,7 @@ using SheshbeshApi.DAL;
 using SheshbeshApi.Filters;
 using SheshbeshApi.Hubs;
 using SheshbeshApi.Models;
+using SheshbeshApi.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,8 @@ builder.Services.Configure<JwtSettings>(
 builder.Services.AddSingleton<IUserRepository, UserRepository>();
 
 builder.Services.AddSingleton<IMessageRepository, MessageRepository>();
+
+builder.Services.AddScoped<ISheshbeshGameService, SheshbeshGameService>();
 
 builder.Services.AddControllers();
 
