@@ -10,6 +10,10 @@
         public int[] PossibleMoves { get; set; }
         public int[] DiceRolls { get; set; }
         public bool IsDouble { get; set; }
+        public bool HasRolledDice { get; set; }
+        public bool BlackJailFilled { get; set; }
+        public bool WhiteJailFilled { get; set; }
+        public string? WonPlayer { get; set; }
 
         public GameState()
         {
@@ -35,6 +39,78 @@
             PossibleMoves = new int[2]; // the index might be filld or not
             DiceRolls = new int[4]; // 0,1 for not equal and 0,1,2,3 for qual dices
         }
+        public GameState HaveAndCanReleasePawns() // after each dice roll we should check it, if the player has pawns in jail and cant free them he should skip turn
+        {
+            
+            int direction = IsPlayerBlackTurn ? -1 : 1;
+
+            if (IsPlayerBlackTurn && int.Parse(Jail[3].ToString()) > 0) // the black player must free his pawns first, any other moves should not be counted
+            {
+                InitPossibleMoves();
+                BlackJailFilled = true;
+                if (IsDouble)
+                {
+                    int toPosition = 25 + (DiceRolls[3] * direction);
+                    var targetPawn = Board[toPosition];
+                    if (targetPawn == null || targetPawn[0] == Jail[2] || targetPawn[1] == '1')
+                    {
+                        PossibleMoves[0] = toPosition;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < DiceRolls.Length; i++)
+                    {
+                        if (i == 2)
+                            break;
+                        int toPosition = 25 + (DiceRolls[i] * direction);
+                        var targetPawn = Board[toPosition];
+                        if (targetPawn == null || targetPawn[0] == Jail[2] || targetPawn[1] == '1')
+                        {
+                            PossibleMoves[i] = toPosition;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                BlackJailFilled = false;
+            }
+
+            if (!IsPlayerBlackTurn && int.Parse(Jail[1].ToString()) > 0) // the white player must free his pawns first, any other moves should not be counted
+            {
+                InitPossibleMoves();
+                WhiteJailFilled = true;
+                if (IsDouble)
+                {
+                    int toPosition = 0 + (DiceRolls[3] * direction);
+                    var targetPawn = Board[toPosition];
+                    if (targetPawn == null || targetPawn[0] == Jail[0] || targetPawn[1] == '1')
+                    {
+                        PossibleMoves[0] = toPosition;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < DiceRolls.Length; i++)
+                    {
+                        if (i == 2)
+                            break;
+                        int toPosition = 0 + (DiceRolls[i] * direction);
+                        var targetPawn = Board[toPosition];
+                        if (targetPawn == null || targetPawn[0] == Jail[0] || targetPawn[1] == '1')
+                        {
+                            PossibleMoves[i] = toPosition;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                WhiteJailFilled = false;
+            }
+            return this;
+        }
         public int GetPotentialMovesAfterEachMove() // if this method returns 0 then we can skip to the next player
         {
             int potentialMoves = 0;
@@ -48,11 +124,9 @@
                     foreach (int die in DiceRolls.Where(d => d != 0))
                     {
                         int toPosition = fromPosition + (die * direction);
-
                         if (toPosition >= 0 && toPosition <= 25)
                         {
                             var targetPawn = Board[toPosition];
-
                             if (targetPawn == null || targetPawn[0] == pawn[0] || targetPawn[1] == '1')
                             {
                                 potentialMoves++;
@@ -62,7 +136,6 @@
                         {
                             potentialMoves++;
                         }
-
                         if (potentialMoves == 1)
                         {
                             return potentialMoves;
@@ -74,28 +147,67 @@
         }
         public bool IsDiceRollsEmpty() // check if the player utilized all of his moves, so we dont need to check "GetPotentialMovesAfterEachMove" And we could skip the turn to the other player
         {
-            bool flag = false;
+            bool flag = true;
             foreach (var die in DiceRolls)
             {
                 flag = die != 0 ? false : true;
+                if (!flag)
+                    return flag;
             }
             return flag;
         }
         public GameState GetPossibleMoves(int fromPosition)
         {
+            InitPossibleMoves();
             for (int i = 0; i < PossibleMoves.Length; i++)
             {
                 if (IsDouble && i == 1)
+                {
+                    PossibleMoves[i] = -1;
                     break;
-                int move = IsPlayerBlackTurn ? fromPosition - DiceRolls[i] : fromPosition + DiceRolls[i];
+                }
+                int move = -1;
+                if (IsDouble)
+                {
+                    move = IsPlayerBlackTurn ? fromPosition - DiceRolls[3] : fromPosition + DiceRolls[3];
+                }
+                else
+                {
+                    move = IsPlayerBlackTurn ? fromPosition - DiceRolls[i] : fromPosition + DiceRolls[i];
+                }
+                if (move == fromPosition)
+                {
+                    PossibleMoves[i] = -1;
+                    continue;
+                }
+                if (move < 0)
+                {
+                    PossibleMoves[i] = 0;
+                    continue;
+                }
+                if (move > 25)
+                {
+                    PossibleMoves[i] = 25;
+                    continue;
+                }
+
                 var toPosition = Board[move];
 
                 if (IsValidMove(toPosition))
                 {
                     PossibleMoves[i] = move; // Assign a valid index to PossibleMoves that the player can move the selected pawn to
                 }
+                else
+                {
+                    PossibleMoves[i] = -1;
+                }
             }
             return this;
+        }
+        private void InitPossibleMoves()
+        {
+            PossibleMoves[0] = -1;
+            PossibleMoves[1] = -1;
         }
         private bool IsValidMove(string toPosition)
         {
@@ -134,27 +246,90 @@
                 MoveToJail(opponentSymbol);
             }
 
-            for (int i = 0; i < DiceRolls.Length; i++)
+            // After the board has been updated we need to "find" which dice was used for the move and set it to 0
+            if ((toPosition == 0 || toPosition == 25) && !IsDouble) // means the black/white player decided to move a pawn to the bearing-off
             {
-                if (Math.Abs(fromPosition - toPosition) == DiceRolls[i] && DiceRolls[i] != 0)
+                int distance = Math.Abs(fromPosition - toPosition); 
+
+                bool canUseFirstDice = DiceRolls[0] >= distance; 
+                bool canUseSecondDice = DiceRolls[1] >= distance; 
+
+                if (canUseFirstDice && canUseSecondDice)
                 {
-                    DiceRolls[i] = 0;
-                    break;
+                    if (DiceRolls[0] <= DiceRolls[1])
+                    {
+                        DiceRolls[0] = 0; 
+                    }
+                    else
+                    {
+                        DiceRolls[1] = 0;
+                    }
                 }
-                if (!IsDouble && i == 2)
+                else if (canUseFirstDice)
                 {
-                    break;
+                    DiceRolls[0] = 0;
+                }
+                else
+                {
+                    DiceRolls[1] = 0;
+                }
+            }
+            else if ((toPosition == 0 || toPosition == 25) && IsDouble) // means the black/white player decided to move a pawn to the bearing-off when we have a double
+            {
+                for (int i = 0; i < DiceRolls.Length; i++)
+                {
+                    if (DiceRolls[i] != 0)
+                    {
+                        DiceRolls[i] = 0;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < DiceRolls.Length; i++)
+                {
+                    if (Math.Abs(fromPosition - toPosition) == DiceRolls[i] && DiceRolls[i] != 0)
+                    {
+                        DiceRolls[i] = 0;
+                        break;
+                    }
+                    if (!IsDouble && i == 2)
+                    {
+                        break;
+                    }
                 }
             }
             return this;
         }
         private void UpdateSourcePosition(int position, char playerSymbol)
         {
-            var currentValue = Board[position];
-            int count = int.Parse(currentValue[1].ToString());
-            count--;
+            //Jail = "w0b0"
+            if (position == 25 || position == 0)
+            {
+                if (playerSymbol == 'b')
+                {
+                    int wCount = int.Parse(Jail[1].ToString());
+                    int bCount = int.Parse(Jail[3].ToString());
+                    bCount--;
+                    Jail = $"w{wCount}b{bCount}";
+                }
+                else
+                {
+                    int wCount = int.Parse(Jail[1].ToString());
+                    int bCount = int.Parse(Jail[3].ToString());
+                    wCount--;
+                    Jail = $"w{wCount}b{bCount}";
+                }
+            }
+            else
+            {
+                var currentValue = Board[position];
+                int count = int.Parse(currentValue[1].ToString());
+                count--;
 
-            Board[position] = count > 0 ? $"{playerSymbol}{count}" : null!;
+                Board[position] = count > 0 ? $"{playerSymbol}{count}" : null!;
+            }
         }
         private string IncrementPawnCount(string positionValue)
         {
@@ -179,6 +354,20 @@
             }
 
             Jail = $"{jailValue[0]}{whiteJailCount}{jailValue[2]}{blackJailCount}";
+        }
+        public string? HasWon() // return black or white or null
+        {
+            if (int.Parse(Board[0][1].ToString()) == 15)
+            {
+                WonPlayer = "black";
+                return "black";
+            }
+            if (int.Parse(Board[25][1].ToString()) == 15)
+            {
+                WonPlayer = "white";
+                return "white";
+            }
+            return null;
         }
     }
 }
