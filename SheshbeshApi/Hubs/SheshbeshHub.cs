@@ -129,6 +129,8 @@ namespace SheshbeshApi.Hubs
             {
                 _gameService.RemoveGameState(groupName);
 
+                await Clients.Group(groupName).SendAsync("OpponentCrashed");
+
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
 
                 userGroups.Remove(Context.ConnectionId);

@@ -155,11 +155,35 @@ namespace SheshbeshApi.Services
                 return gameState;
             }
 
-            gameState = gameState.HaveAndCanReleasePawns();
-
-            if (!IsThereAndCanThePlayerFreePrinsoners(gameState))
+            if (gameState.IsPlayerBlackTurn && gameState.BlackJailFilled)
             {
-                NotifyClientsTurnSkipped(groupName);
+                gameState = gameState.HaveAndCanReleasePawns();
+                bool isThereMovesToFree = IsThereAndCanThePlayerFreePrinsoners(gameState);
+                if (isThereMovesToFree)
+                {
+                    _hubContext.Clients.Group(groupName).SendAsync("ReceivePossbleMoves", gameState);
+                }
+                else
+                {
+                    gameState.IsPlayerBlackTurn = !gameState.IsPlayerBlackTurn;
+                    gameState.HasRolledDice = false;
+                    NotifyClientsTurnSkipped(groupName);
+                }
+            }
+            else if (!gameState.IsPlayerBlackTurn && gameState.WhiteJailFilled)
+            {
+                gameState = gameState.HaveAndCanReleasePawns();
+                bool isThereMovesToFree = IsThereAndCanThePlayerFreePrinsoners(gameState);
+                if (isThereMovesToFree)
+                {
+                    _hubContext.Clients.Group(groupName).SendAsync("ReceivePossbleMoves", gameState);
+                }
+                else
+                {
+                    gameState.IsPlayerBlackTurn = !gameState.IsPlayerBlackTurn;
+                    gameState.HasRolledDice = false;
+                    NotifyClientsTurnSkipped(groupName);
+                }
             }
             else
             {

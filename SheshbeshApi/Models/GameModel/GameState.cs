@@ -107,7 +107,7 @@
             int potentialMoves = 0;
             int direction = IsPlayerBlackTurn ? -1 : 1;
 
-            for (int fromPosition = 0; fromPosition < Board.Length; fromPosition++)
+            for (int fromPosition = 1; fromPosition < Board.Length - 1 ; fromPosition++)
             {
                 var pawn = Board[fromPosition];
                 if (pawn != null && pawn[0] == (IsPlayerBlackTurn ? 'b' : 'w'))
