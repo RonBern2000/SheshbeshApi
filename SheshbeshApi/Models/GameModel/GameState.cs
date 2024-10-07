@@ -41,7 +41,6 @@
         }
         public GameState HaveAndCanReleasePawns() // after each dice roll we should check it, if the player has pawns in jail and cant free them he should skip turn
         {
-            
             int direction = IsPlayerBlackTurn ? -1 : 1;
 
             if (IsPlayerBlackTurn && int.Parse(Jail[3].ToString()) > 0) // the black player must free his pawns first, any other moves should not be counted
@@ -52,7 +51,7 @@
                 {
                     int toPosition = 25 + (DiceRolls[3] * direction);
                     var targetPawn = Board[toPosition];
-                    if (targetPawn == null || targetPawn[0] == Jail[2] || targetPawn[1] == '1')
+                    if (targetPawn == null || targetPawn[0] == Jail[2] || int.Parse(targetPawn.Substring(1)) == 1)
                     {
                         PossibleMoves[0] = toPosition;
                     }
@@ -65,16 +64,12 @@
                             break;
                         int toPosition = 25 + (DiceRolls[i] * direction);
                         var targetPawn = Board[toPosition];
-                        if (targetPawn == null || targetPawn[0] == Jail[2] || targetPawn[1] == '1')
+                        if (targetPawn == null || targetPawn[0] == Jail[2] || int.Parse(targetPawn.Substring(1)) == 1)
                         {
                             PossibleMoves[i] = toPosition;
                         }
                     }
                 }
-            }
-            else
-            {
-                BlackJailFilled = false;
             }
 
             if (!IsPlayerBlackTurn && int.Parse(Jail[1].ToString()) > 0) // the white player must free his pawns first, any other moves should not be counted
@@ -85,7 +80,7 @@
                 {
                     int toPosition = 0 + (DiceRolls[3] * direction);
                     var targetPawn = Board[toPosition];
-                    if (targetPawn == null || targetPawn[0] == Jail[0] || targetPawn[1] == '1')
+                    if (targetPawn == null || targetPawn[0] == Jail[0] || int.Parse(targetPawn.Substring(1)) == 1)
                     {
                         PossibleMoves[0] = toPosition;
                     }
@@ -98,16 +93,12 @@
                             break;
                         int toPosition = 0 + (DiceRolls[i] * direction);
                         var targetPawn = Board[toPosition];
-                        if (targetPawn == null || targetPawn[0] == Jail[0] || targetPawn[1] == '1')
+                        if (targetPawn == null || targetPawn[0] == Jail[0] || int.Parse(targetPawn.Substring(1)) == 1)
                         {
                             PossibleMoves[i] = toPosition;
                         }
                     }
                 }
-            }
-            else
-            {
-                WhiteJailFilled = false;
             }
             return this;
         }
@@ -127,7 +118,7 @@
                         if (toPosition >= 0 && toPosition <= 25)
                         {
                             var targetPawn = Board[toPosition];
-                            if (targetPawn == null || targetPawn[0] == pawn[0] || targetPawn[1] == '1')
+                            if (targetPawn == null || targetPawn[0] == pawn[0] || int.Parse(targetPawn.Substring(1)) == 1)
                             {
                                 potentialMoves++;
                             }
@@ -216,12 +207,12 @@
             if (IsPlayerBlackTurn)
             {
                 // Valid move for black player
-                return toPosition[0] == 'b' || toPosition[1] == '1';
+                return toPosition[0] == 'b' || int.Parse(toPosition.Substring(1)) == 1;
             }
             else
             {
                 // Valid move for white player
-                return toPosition[0] == 'w' || toPosition[1] == '1';
+                return toPosition[0] == 'w' || int.Parse(toPosition.Substring(1)) == 1;
             }
         }
         public GameState MakeMove(int fromPosition, int toPosition) // represting the indexes from and to
@@ -312,6 +303,10 @@
                     int wCount = int.Parse(Jail[1].ToString());
                     int bCount = int.Parse(Jail[3].ToString());
                     bCount--;
+                    if(bCount == 0)
+                    {
+                        BlackJailFilled = false;
+                    }
                     Jail = $"w{wCount}b{bCount}";
                 }
                 else
@@ -319,13 +314,17 @@
                     int wCount = int.Parse(Jail[1].ToString());
                     int bCount = int.Parse(Jail[3].ToString());
                     wCount--;
+                    if (wCount == 0)
+                    {
+                        WhiteJailFilled = false;
+                    }
                     Jail = $"w{wCount}b{bCount}";
                 }
             }
             else
             {
                 var currentValue = Board[position];
-                int count = int.Parse(currentValue[1].ToString());
+                int count = int.Parse(currentValue.Substring(1));
                 count--;
 
                 Board[position] = count > 0 ? $"{playerSymbol}{count}" : null!;
@@ -333,12 +332,20 @@
         }
         private string IncrementPawnCount(string positionValue)
         {
-            int count = int.Parse(positionValue[1].ToString());
+            int count = int.Parse(positionValue.Substring(1));
             count++;
             return $"{positionValue[0]}{count}";
         }
         private void MoveToJail(char opponentSymbol)
         {
+            if(opponentSymbol == 'w')
+            {
+                WhiteJailFilled = true;
+            }
+            else
+            {
+                BlackJailFilled = true;
+            }
             var jailValue = Jail;
 
             int whiteJailCount = int.Parse(jailValue[1].ToString());
@@ -357,12 +364,12 @@
         }
         public string? HasWon() // return black or white or null
         {
-            if (int.Parse(Board[0][1].ToString()) == 15)
+            if (int.Parse(Board[0].Substring(1)) == 15)
             {
                 WonPlayer = "black";
                 return "black";
             }
-            if (int.Parse(Board[25][1].ToString()) == 15)
+            if (int.Parse(Board[25].Substring(1)) == 15)
             {
                 WonPlayer = "white";
                 return "white";

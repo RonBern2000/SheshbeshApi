@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using SheshbeshApi.Hubs;
 using SheshbeshApi.Models.GameModel;
-using System.ComponentModel;
-using System.Numerics;
 
 namespace SheshbeshApi.Services
 {
@@ -27,11 +25,11 @@ namespace SheshbeshApi.Services
         {
             return activeGames.ContainsKey(groupName) ? activeGames[groupName] : null;
         }
-        public GameState? RollDice(string groupName) 
+        public GameState? RollDice(string groupName)
         {
             var gameState = activeGames[groupName];
 
-            if(gameState == null)
+            if (gameState == null)
                 return null;
             var random = new Random();
             int die1 = random.Next(1, 7);
@@ -50,10 +48,35 @@ namespace SheshbeshApi.Services
                 gameState.DiceRolls[1] = die2;
             }
 
-            gameState = gameState.HaveAndCanReleasePawns();
-            if (IsThereAndCanThePlayerFreePrinsoners(gameState))
+            if (gameState.IsPlayerBlackTurn && gameState.BlackJailFilled)
             {
-                _hubContext.Clients.Group(groupName).SendAsync("ReceivePossbleMoves", gameState);
+                gameState = gameState.HaveAndCanReleasePawns();
+                bool isThereMovesToFree = IsThereAndCanThePlayerFreePrinsoners(gameState);
+                if (isThereMovesToFree)
+                {
+                    _hubContext.Clients.Group(groupName).SendAsync("ReceivePossbleMoves", gameState);
+                }
+                else
+                {
+                    gameState.IsPlayerBlackTurn = !gameState.IsPlayerBlackTurn;
+                    gameState.HasRolledDice = false;
+                    NotifyClientsTurnSkipped(groupName);
+                }
+            }
+            else if (!gameState.IsPlayerBlackTurn && gameState.WhiteJailFilled)
+            {
+                gameState = gameState.HaveAndCanReleasePawns();
+                bool isThereMovesToFree = IsThereAndCanThePlayerFreePrinsoners(gameState);
+                if (isThereMovesToFree)
+                {
+                    _hubContext.Clients.Group(groupName).SendAsync("ReceivePossbleMoves", gameState);
+                }
+                else
+                {
+                    gameState.IsPlayerBlackTurn = !gameState.IsPlayerBlackTurn;
+                    gameState.HasRolledDice = false;
+                    NotifyClientsTurnSkipped(groupName);
+                }
             }
             else
             {
@@ -68,7 +91,7 @@ namespace SheshbeshApi.Services
         private bool IsThereAndCanThePlayerFreePrinsoners(GameState gameState)
         {
             bool flag = false;
-            foreach(var possibleMove in gameState.PossibleMoves)
+            foreach (var possibleMove in gameState.PossibleMoves)
             {
                 flag = possibleMove != -1 ? true : false;
                 if (flag)
