@@ -1,16 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using MongoDB.Driver.Core.Connections;
 using SheshbeshApi.Services;
 using System.Collections.Concurrent;
 
 namespace SheshbeshApi.Hubs
 {
-    [Authorize]
     public class SheshbeshHub : Hub
     {
         private static Dictionary<string, string> userGroups = new Dictionary<string, string>();
-        private static readonly ConcurrentDictionary<string, int> RoomPlayerCount = new();
+        private static readonly ConcurrentDictionary<string, int> roomPlayerCount = new();
 
         private readonly ISheshbeshGameService _gameService;
 
@@ -18,6 +16,25 @@ namespace SheshbeshApi.Hubs
         {
             _gameService = gameService;
         }
+        public override async Task OnConnectedAsync()
+        {
+            var user = Context.User;
+            if (user == null || !user.Identity!.IsAuthenticated)
+            {
+                await Clients.Caller.SendAsync("Unauthorized", "You are not authorized. Redirecting...");
+                Context.Abort();
+            }
+            else
+            {
+                await base.OnConnectedAsync();
+            }
+        }
+        [Authorize]
+        public async Task GetCurrentPlayerCounts()
+        {
+            await Clients.Caller.SendAsync("ReceiveCurrentPlayerCount", roomPlayerCount);
+        }
+        [Authorize]
         public async Task JoinGame(string groupName)
         {
             var groupPlayers = userGroups.Values.Count(g => g == groupName);
@@ -25,16 +42,16 @@ namespace SheshbeshApi.Hubs
             if (groupPlayers >= 2)
             {
                 await Clients.Caller.SendAsync("GameIsFull", true);
-                return; 
+                return;
             }
 
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
-            int currentPlayerCount = RoomPlayerCount.AddOrUpdate(groupName, 1, (key, count) => count + 1);
-
-            await Clients.All.SendAsync("UpdatePlayerCount", groupName, currentPlayerCount);
-
             userGroups[Context.ConnectionId] = groupName;
+
+            CountKeysWithSameValue(userGroups, roomPlayerCount); // Update the roomPlayerCount Dic
+
+            await Clients.All.SendAsync("UpdatePlayerCount", roomPlayerCount);
 
             groupPlayers = userGroups.Values.Count(g => g == groupName);
 
@@ -60,19 +77,16 @@ namespace SheshbeshApi.Hubs
                 await Clients.Group(groupName).SendAsync("StartGame", gameState);
             }
         }
+        [Authorize]
         public async Task LeaveRoom()
         {
             string groupName = userGroups[Context.ConnectionId];
             var players = userGroups.Where(u => u.Value == groupName).Select(u => u.Key).ToList();
             _gameService.RemoveGameState(groupName);
 
-            await Clients.All.SendAsync("UpdatePlayerCount", groupName, RoomPlayerCount[groupName]);
-
-            RoomPlayerCount.AddOrUpdate(groupName, 0, (key, count) => count > 0 ? count - 1 : 0);
-
             foreach (var playerId in players)
             {
-                if(playerId == Context.ConnectionId)
+                if (playerId == Context.ConnectionId)
                 {
                     await Clients.Client(playerId).SendAsync("RedirectTheLeaver", Context.ConnectionId);
                 }
@@ -82,7 +96,7 @@ namespace SheshbeshApi.Hubs
                 }
             }
         }
-
+        [Authorize]
         public async Task RollDice()
         {
             string groupName = userGroups[Context.ConnectionId];
@@ -90,7 +104,7 @@ namespace SheshbeshApi.Hubs
 
             await Clients.Group(groupName).SendAsync("DiceRolled", gameState);
         }
-
+        [Authorize]
         public async Task GetPossibleMoves(int fromPosition)
         {
             string groupName = userGroups[Context.ConnectionId];
@@ -99,6 +113,7 @@ namespace SheshbeshApi.Hubs
 
             await Clients.Group(groupName).SendAsync("ReceivePossbleMoves", gameState);
         }
+        [Authorize]
         public async Task MakeMove(int fromPosition, int toPosition)
         {
             string groupName = userGroups[Context.ConnectionId];
@@ -107,7 +122,7 @@ namespace SheshbeshApi.Hubs
 
             await Clients.Group(groupName).SendAsync("MoveMade", gameState);
         }
-
+        [Authorize]
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             if (userGroups.TryGetValue(Context.ConnectionId, out var groupName))
@@ -117,8 +132,31 @@ namespace SheshbeshApi.Hubs
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
 
                 userGroups.Remove(Context.ConnectionId);
+
+                CountKeysWithSameValue(userGroups, roomPlayerCount); // Update the roomPlayerCount Dic
+
+                await Clients.All.SendAsync("UpdatePlayerCount", roomPlayerCount);
             }
             await base.OnDisconnectedAsync(exception);
         }
+        [Authorize]
+        private void CountKeysWithSameValue(Dictionary<string, string> userGroups, ConcurrentDictionary<string, int> roomPlayerCount)
+        {
+            roomPlayerCount.Clear();
+            foreach (var kvp in userGroups)
+            {
+                var groupName = kvp.Value;
+
+                if (roomPlayerCount.ContainsKey(groupName))
+                {
+                    roomPlayerCount[groupName]++;
+                }
+                else
+                {
+                    roomPlayerCount[groupName] = 1;
+                }
+            }
+        }
+
     }
 }

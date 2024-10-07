@@ -5,7 +5,6 @@ using SheshbeshApi.Models;
 
 namespace SheshbeshApi.Hubs
 {
-    [Authorize]
     public class ChatHub : Hub
     {
         private readonly IMessageRepository _messageRepository;
@@ -13,18 +12,33 @@ namespace SheshbeshApi.Hubs
         {
             _messageRepository = messageRepository;
         }
+        public override async Task OnConnectedAsync()
+        {
+            var user = Context.User;
+            if (user == null || !user.Identity!.IsAuthenticated)
+            {
+                await Clients.Caller.SendAsync("Unauthorized", "You are not authorized. Redirecting...");
+                Context.Abort();
+            }
+            else
+            {
+                await base.OnConnectedAsync();
+            }
+        }
+        [Authorize]
+
         public async Task SendMessage(string username, string msg)
         {
             await Clients.All.SendAsync("ReceiveMessage", username, msg);
         }
-
+        [Authorize]
         public async Task JoinRoom(string username1, string username2)
         {
             var groupName = SortUsernames([username1, username2]);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
-
+        [Authorize]
         public async Task LeaveRoom(string username1, string username2)
         {
             var groupName = SortUsernames([username1, username2]);
@@ -32,7 +46,7 @@ namespace SheshbeshApi.Hubs
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
             await Clients.Group(groupName).SendAsync("UserLeft", username1); // Notify other users
         }
-
+        [Authorize]
         public async Task SendGroupMessage(string username1, string username2, string message)
         {
             var groupName = SortUsernames([username1, username2]);
@@ -48,7 +62,7 @@ namespace SheshbeshApi.Hubs
 
             await _messageRepository.CreateAsync(newMessage);
         }
-
+        [Authorize]
         private string SortUsernames(string[] usernames)
         {
             var sorted = usernames.OrderBy(u => u).ToArray();

@@ -40,21 +40,19 @@ namespace SheshbeshApi.Controllers
             if (user is null)
                 return NotFound();
 
-            var resUser = new ResponseUser { Id = user.Id , Username = user.UserName, Email = user.Email };
+            var resUser = new ResponseUser { Id = user.Id, Username = user.UserName, Email = user.Email };
 
             return Ok(resUser);
         }
-        //TODO: consider remnoval
+
         [HttpPost("authStatus")]
         [Authorize]
-        public IActionResult CheckAuthStatus()
+        public async Task<IActionResult> CheckAuthStatus()
         {
-            if (User!.Identity!.IsAuthenticated) 
-            {
-                return Ok(true);
-            }
-
-            return Ok(false);
+            var userName = User.Identity!.Name;
+            var user = await _usersService.GetUserByUsernameAsync(userName!);
+            var resUser = new ResponseUser { Id = user!.Id, Username = user.UserName, Email = user.Email };
+            return Ok(resUser);
         }
 
         [HttpPost("login")]
@@ -95,7 +93,7 @@ namespace SheshbeshApi.Controllers
         [HttpPost("signup")]
         public async Task<ActionResult<User>> Signup([FromBody] UserSignupDTO newUserDTO)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             var existingUser = await _usersService.GetUserByUsernameAsync(newUserDTO.Username!);

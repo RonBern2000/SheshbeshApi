@@ -74,6 +74,20 @@ builder.Services.AddAuthentication(options =>
                 context.Token = token;
             }
             return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            if (context.Response.HasStarted)
+            {
+                return Task.CompletedTask;
+            }
+
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+            context.Response.Headers.Append("Location", "");
+
+            context.HandleResponse();
+            return Task.CompletedTask;
         }
     };
 });
