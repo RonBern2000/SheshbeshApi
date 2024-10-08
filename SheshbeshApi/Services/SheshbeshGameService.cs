@@ -50,7 +50,7 @@ namespace SheshbeshApi.Services
 
             if (gameState.IsPlayerBlackTurn && gameState.BlackJailFilled)
             {
-                gameState = gameState.HaveAndCanReleasePawns();
+                gameState = gameState.ReleaseFromJailMoves();
                 bool isThereMovesToFree = IsThereAndCanThePlayerFreePrinsoners(gameState);
                 if (isThereMovesToFree)
                 {
@@ -65,7 +65,7 @@ namespace SheshbeshApi.Services
             }
             else if (!gameState.IsPlayerBlackTurn && gameState.WhiteJailFilled)
             {
-                gameState = gameState.HaveAndCanReleasePawns();
+                gameState = gameState.ReleaseFromJailMoves();
                 bool isThereMovesToFree = IsThereAndCanThePlayerFreePrinsoners(gameState);
                 if (isThereMovesToFree)
                 {
@@ -157,7 +157,7 @@ namespace SheshbeshApi.Services
 
             if (gameState.IsPlayerBlackTurn && gameState.BlackJailFilled)
             {
-                gameState = gameState.HaveAndCanReleasePawns();
+                gameState = gameState.ReleaseFromJailMoves();
                 bool isThereMovesToFree = IsThereAndCanThePlayerFreePrinsoners(gameState);
                 if (isThereMovesToFree)
                 {
@@ -172,7 +172,7 @@ namespace SheshbeshApi.Services
             }
             else if (!gameState.IsPlayerBlackTurn && gameState.WhiteJailFilled)
             {
-                gameState = gameState.HaveAndCanReleasePawns();
+                gameState = gameState.ReleaseFromJailMoves();
                 bool isThereMovesToFree = IsThereAndCanThePlayerFreePrinsoners(gameState);
                 if (isThereMovesToFree)
                 {

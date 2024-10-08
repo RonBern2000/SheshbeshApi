@@ -19,31 +19,31 @@
         {
             Jail = "w0b0";
             Board = new string[26];
-            // Empty indexes are null
+
             Board[0] = "b0";   // Black's bear-off area, initially empty
             Board[25] = "w0";  // White's bear-off area, initially empty
 
             // Black checkers setup, Move from the top to the bottom right
-            Board[24] = "b2";  // 2 black checkers on point 24
-            Board[13] = "b5";  // 5 black checkers on point 13
-            Board[8] = "b3";  // 3 black checkers on point 8
-            Board[6] = "b5";  // 5 black checkers on point 6
+            Board[24] = "b2";  
+            Board[13] = "b5";
+            Board[8] = "b3";  
+            Board[6] = "b5";  
 
             // White checkers setup, Move from the bottom to the top right
-            Board[1] = "w2";  // 2 white checkers on point 1
-            Board[12] = "w5";  // 5 white checkers on point 12
-            Board[17] = "w3";  // 3 white checkers on point 17
-            Board[19] = "w5";  // 5 white checkers on point 19
+            Board[1] = "w2";  
+            Board[12] = "w5"; 
+            Board[17] = "w3";  
+            Board[19] = "w5"; 
 
             IsPlayerBlackTurn = true;
-            PossibleMoves = new int[2]; // the index might be filld or not
-            DiceRolls = new int[4]; // 0,1 for not equal and 0,1,2,3 for qual dices
+            PossibleMoves = new int[2]; 
+            DiceRolls = new int[4]; 
         }
-        public GameState HaveAndCanReleasePawns() // after each dice roll we should check it, if the player has pawns in jail and cant free them he should skip turn
+        public GameState ReleaseFromJailMoves()
         {
             int direction = IsPlayerBlackTurn ? -1 : 1;
 
-            if (IsPlayerBlackTurn && int.Parse(Jail[3].ToString()) > 0) // the black player must free his pawns first, any other moves should not be counted
+            if (IsPlayerBlackTurn && int.Parse(Jail[3].ToString()) > 0)
             {
                 InitPossibleMoves();
                 BlackJailFilled = true;
@@ -72,7 +72,7 @@
                 }
             }
 
-            if (!IsPlayerBlackTurn && int.Parse(Jail[1].ToString()) > 0) // the white player must free his pawns first, any other moves should not be counted
+            if (!IsPlayerBlackTurn && int.Parse(Jail[1].ToString()) > 0)
             {
                 InitPossibleMoves();
                 WhiteJailFilled = true;
@@ -102,7 +102,7 @@
             }
             return this;
         }
-        public int GetPotentialMovesAfterEachMove() // if this method returns 0 then we can skip to the next player
+        public int GetPotentialMovesAfterEachMove()
         {
             int potentialMoves = 0;
             int direction = IsPlayerBlackTurn ? -1 : 1;
@@ -136,7 +136,7 @@
             }
             return potentialMoves;
         }
-        public bool IsDiceRollsEmpty() // check if the player utilized all of his moves, so we dont need to check "GetPotentialMovesAfterEachMove" And we could skip the turn to the other player
+        public bool IsDiceRollsEmpty()
         {
             bool flag = true;
             foreach (var die in DiceRolls)
@@ -157,36 +157,36 @@
                     PossibleMoves[i] = -1;
                     break;
                 }
-                int move = -1;
+                int moveIndex = -1;
                 if (IsDouble)
                 {
-                    move = IsPlayerBlackTurn ? fromPosition - DiceRolls[3] : fromPosition + DiceRolls[3];
+                    moveIndex = IsPlayerBlackTurn ? fromPosition - DiceRolls[3] : fromPosition + DiceRolls[3];
                 }
                 else
                 {
-                    move = IsPlayerBlackTurn ? fromPosition - DiceRolls[i] : fromPosition + DiceRolls[i];
+                    moveIndex = IsPlayerBlackTurn ? fromPosition - DiceRolls[i] : fromPosition + DiceRolls[i];
                 }
-                if (move == fromPosition)
+                if (moveIndex == fromPosition)
                 {
                     PossibleMoves[i] = -1;
                     continue;
                 }
-                if (move < 0)
+                if (moveIndex < 0)
                 {
                     PossibleMoves[i] = 0;
                     continue;
                 }
-                if (move > 25)
+                if (moveIndex > 25)
                 {
                     PossibleMoves[i] = 25;
                     continue;
                 }
 
-                var toPosition = Board[move];
+                var toPosition = Board[moveIndex];
 
                 if (IsValidMove(toPosition))
                 {
-                    PossibleMoves[i] = move; // Assign a valid index to PossibleMoves that the player can move the selected pawn to
+                    PossibleMoves[i] = moveIndex;
                 }
                 else
                 {
@@ -206,18 +206,15 @@
 
             if (IsPlayerBlackTurn)
             {
-                // Valid move for black player
                 return toPosition[0] == 'b' || int.Parse(toPosition.Substring(1)) == 1;
             }
             else
             {
-                // Valid move for white player
                 return toPosition[0] == 'w' || int.Parse(toPosition.Substring(1)) == 1;
             }
         }
-        public GameState MakeMove(int fromPosition, int toPosition) // represting the indexes from and to
+        public GameState MakeMove(int fromPosition, int toPosition)
         {
-            // Jail = "w0b0" structure
             char playerSymbol = IsPlayerBlackTurn ? 'b' : 'w';
             char opponentSymbol = IsPlayerBlackTurn ? 'w' : 'b';
 
@@ -237,8 +234,7 @@
                 MoveToJail(opponentSymbol);
             }
 
-            // After the board has been updated we need to "find" which dice was used for the move and set it to 0
-            if ((toPosition == 0 || toPosition == 25) && !IsDouble) // means the black/white player decided to move a pawn to the bearing-off
+            if ((toPosition == 0 || toPosition == 25) && !IsDouble)
             {
                 int distance = Math.Abs(fromPosition - toPosition); 
 
@@ -265,7 +261,7 @@
                     DiceRolls[1] = 0;
                 }
             }
-            else if ((toPosition == 0 || toPosition == 25) && IsDouble) // means the black/white player decided to move a pawn to the bearing-off when we have a double
+            else if ((toPosition == 0 || toPosition == 25) && IsDouble)
             {
                 for (int i = 0; i < DiceRolls.Length; i++)
                 {
@@ -293,9 +289,12 @@
             }
             return this;
         }
+        private void FindUsedDice(int fromPosition, int toPosition)
+        {
+
+        }
         private void UpdateSourcePosition(int position, char playerSymbol)
         {
-            //Jail = "w0b0"
             if (position == 25 || position == 0)
             {
                 if (playerSymbol == 'b')
@@ -362,7 +361,7 @@
 
             Jail = $"{jailValue[0]}{whiteJailCount}{jailValue[2]}{blackJailCount}";
         }
-        public string? HasWon() // return black or white or null
+        public string? HasWon()
         {
             if (int.Parse(Board[0].Substring(1)) == 15)
             {
