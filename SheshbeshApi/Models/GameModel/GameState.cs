@@ -234,18 +234,24 @@
                 MoveToJail(opponentSymbol);
             }
 
+            FindUsedDice(fromPosition, toPosition);
+
+            return this;
+        }
+        private void FindUsedDice(int fromPosition, int toPosition)
+        {
             if ((toPosition == 0 || toPosition == 25) && !IsDouble)
             {
-                int distance = Math.Abs(fromPosition - toPosition); 
+                int distance = Math.Abs(fromPosition - toPosition);
 
-                bool canUseFirstDice = DiceRolls[0] >= distance; 
-                bool canUseSecondDice = DiceRolls[1] >= distance; 
+                bool canUseFirstDice = DiceRolls[0] >= distance;
+                bool canUseSecondDice = DiceRolls[1] >= distance;
 
                 if (canUseFirstDice && canUseSecondDice)
                 {
                     if (DiceRolls[0] <= DiceRolls[1])
                     {
-                        DiceRolls[0] = 0; 
+                        DiceRolls[0] = 0;
                     }
                     else
                     {
@@ -287,11 +293,6 @@
                     }
                 }
             }
-            return this;
-        }
-        private void FindUsedDice(int fromPosition, int toPosition)
-        {
-
         }
         private void UpdateSourcePosition(int position, char playerSymbol)
         {
