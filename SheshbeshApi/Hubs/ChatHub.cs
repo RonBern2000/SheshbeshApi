@@ -26,7 +26,6 @@ namespace SheshbeshApi.Hubs
             }
         }
         [Authorize]
-
         public async Task SendMessage(string username, string msg)
         {
             await Clients.All.SendAsync("ReceiveMessage", username, msg);
